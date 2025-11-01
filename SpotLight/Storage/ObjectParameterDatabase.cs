@@ -939,16 +939,12 @@ namespace Spotlight.Database
         {
             string listName = CategoryPrefixes[(int)Category] + ObjList.ToString();
 
-            if (zone.ObjLists.ContainsKey(listName))
+            if (!zone.ObjLists.ContainsKey(listName))
             {
-                objList = zone.ObjLists[listName];
-                return true;
+                zone.ObjLists[listName] = new ObjectList();
             }
-            else
-            {
-                objList = null;
-                return false;
-            }
+            objList = zone.ObjLists[listName];
+            return true;
         }
 
         internal void InitLists()

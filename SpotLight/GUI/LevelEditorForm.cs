@@ -328,6 +328,8 @@ namespace Spotlight.GUI
 
         private void LayerListControl_ScenarioConfigChanged(object sender, EventArgs e)
         {
+            currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
+            LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
             LevelGLControlModern.Refresh();
         }
 
@@ -1073,8 +1075,11 @@ namespace Spotlight.GUI
             if (currentScene.GetType() != typeof(SM3DWorldScene))
             {
                 currentScene = currentScene.ConvertToOtherSceneType<SM3DWorldScene>();
+                currentScene.LoadKoopRacePoints();
                 AssignSceneEvents(currentScene);
                 LevelGLControlModern.MainDrawable = currentScene;
+                currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
+                LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
                 LevelGLControlModern.Refresh();
             }
         }
@@ -1088,6 +1093,8 @@ namespace Spotlight.GUI
                 currentScene = linkEditScene;
                 AssignSceneEvents(currentScene);
                 LevelGLControlModern.MainDrawable = currentScene;
+                currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
+                LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
                 LevelGLControlModern.Refresh();
             }
         }

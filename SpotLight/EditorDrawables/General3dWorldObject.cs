@@ -972,6 +972,7 @@ namespace Spotlight.EditorDrawables
 
 
                 obj.Layer = scene.EditZone.GetOrCreateLayer(control.DropDownTextInput("Layer", obj.Layer.Name, layerNames, false));
+                OnValueSet();
             }
 
             public void OnValueSet()

@@ -66,13 +66,13 @@ namespace Spotlight.EditorDrawables
 
                 int i_index = linkIndices.Length;
 
-                foreach (ObjListInfo objListInfo in objListInfos.Reverse())
+                foreach (ObjListInfo objListInfo in Enumerable.Reverse(objListInfos))
                 {
                     newObjListInfos[i_newObjListInfos].objList = objListInfo.objList;
 
                     I3dWorldObject[] newObjs = newObjListInfos[i_newObjListInfos++].objects = new I3dWorldObject[objListInfo.deleteInfos.Length];
                     int i_newObjs = 0;
-                    foreach (DeleteInfo info in objListInfo.deleteInfos.Reverse())
+                    foreach (DeleteInfo info in Enumerable.Reverse(objListInfo.deleteInfos))
                     {
                         //Insert obj into the list
                         objListInfo.objList.Insert(info.index, info.obj);

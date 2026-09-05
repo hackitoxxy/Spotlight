@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Text;
 using Syroot.BinaryData;
 
 namespace SZS
@@ -202,7 +203,8 @@ namespace SZS
             if (bs.ReadUInt16() == 0xFFFE)
                 bs.ByteOrder = ByteOrder.BigEndian;
             bs.BaseStream.Position = 0;
-            if (bs.ReadString(4) != "SARC")
+            // Keep fixed-length reads deterministic across BinaryData versions.
+            if (bs.ReadString(4, Encoding.ASCII) != "SARC")
                 throw new Exception("Wrong magic");
 
             bs.ReadUInt16(); // Chunk length
@@ -312,7 +314,7 @@ namespace SZS
                 chunkSize = bs.ReadUInt16();
                 unknown1 = bs.ReadUInt16();
                 
-                string temp = bs.ReadString(start - (int)bs.BaseStream.Position);
+                string temp = bs.ReadString(start - (int)bs.BaseStream.Position, Encoding.UTF8);
                 char[] splitter = { (char)0x00 };
                 string[] names = temp.Split(splitter);
                 for (int j = 0; j < names.Length; j++)

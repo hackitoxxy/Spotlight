@@ -99,12 +99,20 @@ namespace Spotlight
 
 
             Form host = new Form();
+            host.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            host.Text = "Spotlight";
+            host.ShowInTaskbar = true;
 
             host.Controls.Add(new GLControl());
 
-            host.Load += (x, y) =>
+            host.Shown += (x, y) =>
             {
                 StartUpForm = new LevelEditorForm();
+
+                // Keep the taskbar host visible for the constructor's startup dialogs,
+                // then let the editor provide the visible window and taskbar entry.
+                // Hide rather than close it to preserve its GLControl and message loop.
+                host.Hide();
 
                 Rectangle? bounds = null;
 

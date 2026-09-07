@@ -1651,13 +1651,19 @@ namespace Spotlight.GUI
             #endregion
         }
 
+#if ODYSSEY
+        const string GameName = "Super Mario Odyssey";
+#else
+        const string GameName = "Super Mario 3D World";
+#endif
+
         [Program.Localized]
         string WelcomeMessageHeader = "Introduction";
         [Program.Localized]
         string WelcomeMessageText =
 @"Welcome to Spotlight!
 
-In order to use this program, you will need the folders ""StageData"" and ""ObjectData"" from Super Mario 3D World
+In order to use this program, you will need the folders ""StageData"" and ""ObjectData"" from " + GameName + @"
 
 Please select the folder than contains these folders";
         [Program.Localized]
@@ -1665,7 +1671,7 @@ Please select the folder than contains these folders";
         [Program.Localized]
         string StatusWelcomeBackMessage = "Welcome back!";
         [Program.Localized]
-        string DatabasePickerTitle = "Select the Game Directory of Super Mario 3D World";
+        string DatabasePickerTitle = "Select the Game Directory of " + GameName;
         [Program.Localized]
         string InvalidGamepathText = "The Directory doesn't contain ObjectData and StageData.";
         [Program.Localized]
@@ -1676,7 +1682,7 @@ Please select the folder than contains these folders";
 
 Spotlight needs an Object Parameter Database in order for you to add objects.
 
-Would you like to generate a new object Database from your 3DW Directory?";
+Would you like to generate a new object Database from your " + GameName + " Directory?";
         [Program.Localized]
         string DatabaseMissingHeader = "Database Missing";
         [Program.Localized]
@@ -1687,7 +1693,7 @@ Would you like to generate a new object Database from your 3DW Directory?";
         string DatabaseOutdatedText =
                 @"The Loaded Database is outdated ({0}).
 The latest Database version is {1}.
-Would you like to rebuild the database from your 3DW Files?";
+Would you like to rebuild the database from your " + GameName + " Files?";
         [Program.Localized]
         string DatabaseOutdatedHeader = "Database Outdated";
 
@@ -1721,7 +1727,7 @@ Would you like to rebuild the database from your 3DW Files?";
         [Program.Localized]
         string StatusObjectsDeletedMessage = "Deleted {0}";
         [Program.Localized]
-        string DatabaseInvalidText = "The Database is invalid, and you cannot add objects without one. Would you like to generate one from your SM3DW Files?";
+        string DatabaseInvalidText = "The Database is invalid, and you cannot add objects without one. Would you like to generate one from your " + GameName + " Files?";
         [Program.Localized]
         string DatabaseInvalidHeader = "Invalid Database";
         [Program.Localized]

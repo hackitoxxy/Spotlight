@@ -36,3 +36,4 @@ If you need help with the program or editing the game, you can Join the Cat Chat
 - KFreon: DXT1 Decompression
 
 - Whitehole (SMG Level editor): Some features and visuals were inspired by Whitehole
+- Kirbymimi: Layer improvements, TryGetObjectList updates, and fixes for broken database generation.

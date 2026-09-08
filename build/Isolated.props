@@ -1,0 +1,11 @@
+<Project>
+  <!-- Imported early through DirectoryBuildPropsPath by Build.ps1, including in the sibling
+       GL_EditorFramework project. No outputs/intermediates go into its checkout or live bin. -->
+  <PropertyGroup Condition="'$(SpotlightBuildRoot)' != ''">
+    <BaseIntermediateOutputPath>$(SpotlightBuildRoot)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)build\</IntermediateOutputPath>
+    <OutDir>$(SpotlightBuildRoot)bin\$(MSBuildProjectName)\</OutDir>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

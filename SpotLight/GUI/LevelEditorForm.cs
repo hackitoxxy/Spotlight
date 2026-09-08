@@ -328,8 +328,10 @@ namespace Spotlight.GUI
 
         private void LayerListControl_ScenarioConfigChanged(object sender, EventArgs e)
         {
+#if ODYSSEY
             currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
             LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
+#endif
             LevelGLControlModern.Refresh();
         }
 
@@ -743,9 +745,12 @@ namespace Spotlight.GUI
             if (currentScene == null)
                 return;
 
-            currentScene.Save();
+            // TextInput publishes its buffer on LostFocus, not on each keystroke.
+            // Keyboard shortcuts don't move focus like clicking another control does.
+            ObjectUIControl.UnFocusInput();
+            bool saved = currentScene.Save();
             Scene_IsSavedChanged(null, null);
-            SpotlightToolStripStatusLabel.Text = StatusLevelSavedMessage;
+            SpotlightToolStripStatusLabel.Text = saved ? StatusLevelSavedMessage : StatusSaveCancelledOrFailedMessage;
         }
 
         private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -753,6 +758,7 @@ namespace Spotlight.GUI
             if (currentScene == null)
                 return;
 
+            ObjectUIControl.UnFocusInput();
             if (currentScene.SaveAs())
             {
                 Scene_IsSavedChanged(null, null);
@@ -1075,11 +1081,15 @@ namespace Spotlight.GUI
             if (currentScene.GetType() != typeof(SM3DWorldScene))
             {
                 currentScene = currentScene.ConvertToOtherSceneType<SM3DWorldScene>();
+#if ODYSSEY
                 currentScene.LoadKoopRacePoints();
+#endif
                 AssignSceneEvents(currentScene);
                 LevelGLControlModern.MainDrawable = currentScene;
+#if ODYSSEY
                 currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
                 LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
+#endif
                 LevelGLControlModern.Refresh();
             }
         }
@@ -1093,8 +1103,10 @@ namespace Spotlight.GUI
                 currentScene = linkEditScene;
                 AssignSceneEvents(currentScene);
                 LevelGLControlModern.MainDrawable = currentScene;
+#if ODYSSEY
                 currentScene.SetScenario(ScenarioComboBox.SelectedIndex);
                 LayerListControl.SetScenario(ScenarioComboBox.SelectedIndex);
+#endif
                 LevelGLControlModern.Refresh();
             }
         }
@@ -1344,6 +1356,8 @@ namespace Spotlight.GUI
 
         private void ZoneDocumentTabControl_TabClosing(object sender, DocumentTabClosingEventArgs e)
         {
+            // Commit before checking IsSaved, including keyboard/window-close paths.
+            ObjectUIControl.UnFocusInput();
             SM3DWorldScene scene = (SM3DWorldScene)e.Tab.Document;
 
             #region find out which zones will remain after the zones in this scene gets unloaded
@@ -1388,7 +1402,7 @@ namespace Spotlight.GUI
                 {
                     case DialogResult.Yes:
                         foreach (var zone in unsavedZones)
-                            zone.Save();
+                            if (!zone.Save()) { e.Cancel = true; return; }
 
                         Scene_IsSavedChanged(null, null);
                         break;

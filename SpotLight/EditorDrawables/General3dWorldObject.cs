@@ -427,6 +427,9 @@ namespace Spotlight.EditorDrawables
             if (!Selected)
                 return false;
             objectUIControl.AddObjectUIContainer(new BasicPropertyUIContainer(this, scene), "General");
+#if ODYSSEY
+            objectUIControl.AddObjectUIContainer(new GUI.MoonNameUIContainer(this, (SM3DWorldScene)scene), "Edit Moon Name");
+#endif
 
             var info = Program.InformationDB.GetInformation(ClassName);
             objectUIControl.AddObjectUIContainer(new ExtraPropertiesUIContainer(Properties, scene, info), "Properties");

@@ -165,8 +165,12 @@ namespace Spotlight.Level
 
 
 #region Document State
-        private DateTime lastSaveTime;
+        private readonly Storage.ArchiveChangeTracker archiveChanges;
         bool isSaved = true;
+#if ODYSSEY
+        private Storage.MoonNameStore moonNames;
+        public Storage.MoonNameStore MoonNames => moonNames ?? (moonNames = new Storage.MoonNameStore());
+#endif
 
         public IRevertable LastSavedUndo { get; private set; }
 
@@ -186,7 +190,11 @@ namespace Spotlight.Level
 
         public virtual bool IsSaved
         {
-            get => isSaved;
+            get => isSaved
+#if ODYSSEY
+                && (moonNames == null || !moonNames.IsDirty)
+#endif
+                ;
             set
             {
                 if (isSaved != value)
@@ -344,13 +352,20 @@ namespace Spotlight.Level
 
         public void CheckLocalFiles()
         {
+            archiveChanges.RunCheck(CheckLocalFilesCore);
+        }
+
+        private void CheckLocalFilesCore()
+        {
             foreach (var stageArcInfo in stageArchiveInfos)
             {
                 string fileName = Path.Combine(Directory, stageArcInfo.FileName);
+                if (!archiveChanges.TryReadExternalChange(fileName, out byte[] changedBytes))
+                    continue;
 
                 string dialogText = Program.CurrentLanguage.GetTranslation("ModifiedOutsideText") ?? "{0} was modified outside of Spotlight. Should all extra files be reloaded?";
 
-                if (File.GetLastWriteTime(fileName) > lastSaveTime && MessageBox.Show(
+                if (MessageBox.Show(
                     string.Format(dialogText, fileName),
                     Program.CurrentLanguage.GetTranslation("ModifiedOutsideHeader") ?? "File Modified",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
@@ -364,7 +379,7 @@ namespace Spotlight.Level
                     else
                         ExtraFiles[stageArcInfo.ExtraFileIndex].Clear();
 
-                    var sarcFiles = SARCExt.SARC.UnpackRamN(YAZ0.Decompress(fileName)).Files;
+                    var sarcFiles = SARCExt.SARC.UnpackRamN(YAZ0.Decompress(changedBytes)).Files;
 
                     foreach (var item in stageArcInfo.BymlInfos)
                         sarcFiles.Remove(item.FileName);
@@ -374,9 +389,9 @@ namespace Spotlight.Level
                         LoadExtraFile(fileEntry, stageArcInfo.ExtraFileIndex);
                     }
                 }
+                // "No" declines this version only; another external edit remains detectable.
+                archiveChanges.Acknowledge(fileName, changedBytes);
             }
-
-            lastSaveTime = DateTime.Now;
         }
 #endregion
 
@@ -498,6 +513,7 @@ namespace Spotlight.Level
             ByteOrder byteOrder = 0;
 
             Dictionary<string, SarcData> loadedArchives = new Dictionary<string, SarcData>();
+            var archiveChanges = new Storage.ArchiveChangeTracker();
             List<StageArchiveInfo> loadInfos = new List<StageArchiveInfo>();
 
 #region local helper functions
@@ -528,7 +544,7 @@ namespace Spotlight.Level
                 if (!File.Exists(fileName))
                     return;
 
-                SarcData sarc = SARC.UnpackRamN(YAZ0.Decompress(File.ReadAllBytes(fileName)));
+                SarcData sarc = SARC.UnpackRamN(YAZ0.Decompress(archiveChanges.ReadFile(fileName)));
                 loadedArchives.Add(arcName, sarc);
                 byteOrder = sarc.byteOrder;
 
@@ -552,7 +568,7 @@ namespace Spotlight.Level
                     if (!File.Exists(fileName))
                         break;
 
-                    SarcData sarc = SARC.UnpackRamN(YAZ0.Decompress(File.ReadAllBytes(fileName)));
+                    SarcData sarc = SARC.UnpackRamN(YAZ0.Decompress(archiveChanges.ReadFile(fileName)));
                     loadedArchives.Add(arcName, sarc);
                     byteOrder = sarc.byteOrder;
 
@@ -568,16 +584,17 @@ namespace Spotlight.Level
                 return false;
             }
 
-            zone = new SM3DWorldZone(loadInfos.ToArray(), stageInfo, byteOrder, loadedArchives);
+            zone = new SM3DWorldZone(loadInfos.ToArray(), stageInfo, byteOrder, loadedArchives, archiveChanges);
 
             loadedZones.Add(stageInfo, zone);
 
             return true;
         }
 
-        private SM3DWorldZone(StageArchiveInfo[] stageArchiveInfos, StageInfo stageInfo, ByteOrder byteOrder, Dictionary<string, SarcData> loadedArchives)
+        private SM3DWorldZone(StageArchiveInfo[] stageArchiveInfos, StageInfo stageInfo, ByteOrder byteOrder, Dictionary<string, SarcData> loadedArchives, Storage.ArchiveChangeTracker archiveChanges)
         {
             this.stageArchiveInfos = stageArchiveInfos;
+            this.archiveChanges = archiveChanges;
 
             StageInfo = stageInfo;
             ByteOrder = byteOrder;
@@ -606,7 +623,6 @@ namespace Spotlight.Level
             EvaluateLayers(levelReader);
 
 
-            lastSaveTime = DateTime.Now;
         }
 
 
@@ -1002,28 +1018,42 @@ namespace Spotlight.Level
         /// <returns>true if the save succeeded, false if it failed</returns>
         public bool Save(StageInfo? newStageInfo = null, ByteOrder? newEndian = null)
         {
-            //Change what needs to be changed
-            if (newStageInfo.HasValue)
+            return archiveChanges.RunSave(() => SaveCore(newStageInfo, newEndian));
+        }
+
+        private bool SaveCore(StageInfo? newStageInfo, ByteOrder? newEndian)
+        {
+            try
             {
-                loadedZones.Remove(StageInfo);
-                StageInfo = newStageInfo.Value;
-                loadedZones.Add(StageInfo, this);
+                //Change what needs to be changed
+                if (newStageInfo.HasValue)
+                {
+                    loadedZones.Remove(StageInfo);
+                    StageInfo = newStageInfo.Value;
+                    loadedZones.Add(StageInfo, this);
+                }
+
+                if (newEndian.HasValue)
+                    ByteOrder = newEndian.Value;
+
+                //rebuild file structure and make sure that everything that should be saved will be saved
+                stageArchiveInfos = GetSaveArchiveInfos(GetSaveableCategories(), StageInfo);
+
+                // Both stage and message saves must succeed before clearing unsaved state.
+                SaveInternal();
+#if ODYSSEY
+                moonNames?.Save(StageName);
+#endif
+                IsSaved = true;
+                return true;
             }
-
-            if (newEndian.HasValue)
-                ByteOrder = newEndian.Value;
-
-
-            //rebuild file structure and make sure that everything that should be saved will be saved
-            stageArchiveInfos = GetSaveArchiveInfos(GetSaveableCategories(), StageInfo);
-
-            //actually save everything and mark this zone as saved
-            SaveInternal();
-            IsSaved = true;
-
-            lastSaveTime = DateTime.Now;
-
-            return true;
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException)
+            {
+                IsSaved = false;
+                MessageBox.Show("Save did not complete. Some stage files may already have been saved.\n\n" + ex.Message,
+                    "Save failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
         }
 
         public string[] GetSaveFileNames(StageInfo stageInfo)
@@ -1138,7 +1168,7 @@ namespace Spotlight.Level
                     }
                 }
 
-                File.WriteAllBytes(Path.Combine(Directory, stageArcInfo.FileName), YAZ0.Compress(SARCExt.SARC.PackN(sarcData)));
+                archiveChanges.WriteFile(Path.Combine(Directory, stageArcInfo.FileName), YAZ0.Compress(SARCExt.SARC.PackN(sarcData)));
             }
         }
 

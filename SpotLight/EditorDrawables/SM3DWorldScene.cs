@@ -163,7 +163,9 @@ namespace Spotlight.EditorDrawables
 
             StaticObjects.Add(new ZonePlacementRenderer(this));
 
+#if ODYSSEY
             LoadKoopRacePoints();
+#endif
         }
 
         public SM3DWorldScene()
@@ -1325,7 +1327,7 @@ namespace Spotlight.EditorDrawables
                 if (changeDirectory)
                     newStageInfo.Directory = Program.ProjectStageDataPath;
 
-                zone.Save(newStageInfo);
+                if (!zone.Save(newStageInfo)) return false;
             }
 
             return IsSaved = IsSaved; //seems dumb but it's the only way to make sure the IsSavedChanged event is triggered
@@ -1394,7 +1396,7 @@ namespace Spotlight.EditorDrawables
             _stageInfo.StageName = optionsDialog.StageName;
             _stageInfo.StageArcType = optionsDialog.StageArcType;
 
-            MainZone.Save(_stageInfo, optionsDialog.ByteOrder);
+            if (!MainZone.Save(_stageInfo, optionsDialog.ByteOrder)) return false;
 
             for (int i = 0; i < additionalZones.Count; i++)
             {
@@ -1403,7 +1405,7 @@ namespace Spotlight.EditorDrawables
 
                 _stageInfo.StageName = optionsDialog.AdditionalZoneEntries[i].NewName;
 
-                additionalZones[i].Save(_stageInfo, optionsDialog.ByteOrder);
+                if (!additionalZones[i].Save(_stageInfo, optionsDialog.ByteOrder)) return false;
                 foreach (ZonePlacement placement in mainZone.ZonePlacements) 
                 {
                     if (placement.Zone == additionalZones[i])
